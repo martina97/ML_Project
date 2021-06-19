@@ -5,6 +5,7 @@
 import csv
 
 import pandas as pd
+import numpy as np
 from numpy import dstack
 
 # load a single file as a numpy array
@@ -29,7 +30,8 @@ def load_group(filenames):
     loaded = dstack(loaded)
     return loaded
 
-def replaceCommaCsv(filenames) :
+
+def replaceCommaCsv(filenames):
     filenames2 = list()
     for name in filenames:
         data = ""
@@ -45,13 +47,13 @@ def replaceCommaCsv(filenames) :
 
 
 def csvToTxt(path):
-
-    text = open(path+".csv", "r")
+    text = open(path + ".csv", "r")
     text = ''.join([i for i in text]) \
         .replace(",", " ")
-    x = open(path+".txt", "w")
+    x = open(path + ".txt", "w")
     x.writelines(text)
     x.close()
+
 
 def loadData():
     # load data
@@ -64,6 +66,7 @@ def loadData():
 
     return trainX, trainY
 
+
 def getNaCount(dataset):
     # per ogni elemento (i,j) del dataset, isna() restituisce
     # TRUE/FALSE se il valore corrispondente è mancante/presente
@@ -75,37 +78,61 @@ def getNaCount(dataset):
     x_train = scaler.fit_transform(dataset[0])
     print("x_train: ", x_train)
 
-
-    for i in range(0,dataset.shape[0]):
-
-        print ("i= ", i)
+    for i in range(0, dataset.shape[0]):
+        print("i= ", i)
 
         bho = pd.DataFrame(dataset[i])
-        #print("\n---bho[0] ", bho)
+        # print("\n---bho[0] ", bho)
         boolean_mask = bho.isna()
         # contiamo il numero di TRUE per ogni attributo sul dataset
         '''
                 if (boolean_mask == False):
             print("MERDA")
-        
-        '''
 
+        '''
 
         print("----mask: ", boolean_mask)
         count = boolean_mask.sum(axis=0)
 
-        print("count NaN: ",count)
-        print("count iloc sto cazzo: ",count.values)
+        print("count NaN: ", count)
+        print("count iloc sto cazzo: ", count.values)
 
         stronzo = 1 in count.values
         print("stronzo = ", stronzo)
 
+# Expanding window
+def kFoldValidation(trainX, trainY):
 
+    print(" -------------  kFoldValidation   ---------")
+    k = 10
+    num_val_samples = len(trainX) // k  #1000 per k=5 --> FISSO!
 
+    print("len(trainX)" ,  len(trainX))
 
+    print("num_val_samples" , num_val_samples)
+
+    num_epochs = 100
+    all_scores = []
+    for i in range(k-1):
+        print('processing fold #', i)
+        partial_train_data = trainX[: (i + 1) * num_val_samples]
+        #val_data = trainX[i * num_val_samples: (i + 1) * num_val_samples]
+        print("partial_train_data.shape", partial_train_data.shape)
+        print("partial_train_data", partial_train_data)
+
+        partial_train_targets = trainY[: (i + 1) * num_val_samples]
+        print("\n\npartial_train_targets.shape", partial_train_targets.shape)
+        #print("partial_train_targets", partial_train_targets)
+
+        val_data = trainX[(i + 1) * num_val_samples:(i + 1) * num_val_samples + num_val_samples]
+        print("\n\nval_data.shape", val_data.shape)
+        print("val_data", val_data)
+        val_targets = trainY[(i + 1) * num_val_samples:]
+        print("\n\nval_targets.shape", val_targets.shape)
+        #print("val_targets", val_targets)
+        print("\n#########\n\n")
 
 def main():
-
     trainX, trainY = loadData()
 
     print("shape == ", trainX.shape)
@@ -113,11 +140,10 @@ def main():
     print(" \n=============================================\n")
     print("shape == ", trainY.shape)
     print(trainY)
+    kFoldValidation(trainX, trainY)
+    #print(getNaCount(trainX))
 
-    print(getNaCount(trainX))
-
-    #todo ora fare standard scaler
-
+    # todo ora fare standard scaler
 
     '''
     1 split train test
@@ -125,12 +151,9 @@ def main():
     3 validation (regolarizzaz si fa dentro all'add dei layers)
     4 model fit 
     5 data agumentation
-    
-    
+
+
     '''
-
-
-
 
 
 # Press the green button in the gutter to run the script.
