@@ -6,7 +6,8 @@ import csv
 
 import pandas as pd
 import numpy as np
-from keras.layers import Embedding, LSTM
+from keras.layers import Embedding, LSTM, Dropout, Dense, Conv1D, MaxPooling1D, Flatten, Conv2D
+from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
 from numpy import dstack
 from keras import models
@@ -221,6 +222,50 @@ def buildModel(trainX):
     #model.compile(optimizer='rmsprop', loss='categorical_crossentropy',metrics=['accuracy'])
     return model
 
+def buildModel2(datasetX, datasetY, testX, testY) :
+    verbose, epochs, batch_size = 1, 23, 128 #prima 64
+
+    n_timesteps, n_features, n_outputs = datasetX.shape[1], datasetX.shape[2], datasetY.shape[1]
+    print("n_timesteps == " , n_timesteps) # 315
+    print("n_features == " , n_features)    # 3
+    print("n_outputs == " , n_outputs)  # 8
+    model = Sequential()
+    #model.add(layers.Dense(200, activation='relu', input_shape=(n_timesteps,), kernel_regularizer = tf.keras.regularizers.l2(1.e-4)))
+
+    '''
+    model.add(LSTM(315, input_shape=(n_timesteps, n_features)))
+    #model.add(Dropout(0.2))
+    model.add(Dense(100, activation='relu'))
+
+    model.add(Dense(100, activation='relu'))
+    model.add(Dense(n_outputs, activation='softmax'))
+    '''
+
+    # define model
+    model = Sequential()
+    model.add(Conv1D(filters=64, kernel_size=5, activation='relu', input_shape=(n_timesteps, n_features)))
+
+    model.add(MaxPooling1D(pool_size=4,  strides=3, padding='valid'))
+    model.add(Conv1D(filters=32, kernel_size=5, activation='relu'))
+    model.add(MaxPooling1D(pool_size=4))
+
+
+    model.add(Flatten())
+    model.add(Dense(400, activation='relu'))
+    model.add(Dense(100, activation='relu'))
+
+    model.add(Dense(n_outputs, activation='softmax'))
+    #model.compile(optimizer='adam', loss='mse')
+
+    model.summary()
+
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    # fit network
+    model.fit(datasetX, datasetY, epochs=epochs, batch_size=batch_size, verbose=verbose)
+    # evaluate model
+    _, accuracy = model.evaluate(testX, testY, batch_size=batch_size, verbose=1)
+    print("accuracy ==== ", accuracy)
 
 def main():
     trainX, trainY = loadData()
@@ -232,7 +277,7 @@ def main():
     print("shape == ", trainY.shape)
     print(trainY)
     '''
-    print("PROVA SIMOOOO " , trainX[0].shape)
+    #print("PROVA SIMOOOO " , trainX[0].shape)
 
     trainX, trainY = scale(trainX, trainY, scale_type)
 
@@ -265,11 +310,15 @@ def main():
     testY = to_categorical(testY, 3)
     
     '''
-    trainY = tf.keras.utils.to_categorical(trainY, num_classes=9)
-    testY = tf.keras.utils.to_categorical(testY, num_classes=9)
 
-    model = buildModel(trainX)
-    kFoldValidation(trainX, trainY)
+    trainY = tf.keras.utils.to_categorical(trainY,8)
+    testY = tf.keras.utils.to_categorical(testY,8)
+
+    #model = buildModel(trainX)
+
+    model = buildModel2(trainX, trainY, testX, testY)
+
+    #kFoldValidation(trainX, trainY)
     #print(getNaCount(trainX))
 
 
