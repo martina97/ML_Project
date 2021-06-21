@@ -6,13 +6,18 @@ import csv
 
 import pandas as pd
 import numpy as np
+from keras.layers import Embedding, LSTM
+from keras.utils.np_utils import to_categorical
 from numpy import dstack
+from keras import models
+from keras import layers
+import tensorflow as tf
 
-# load a single file as a numpy array
 from pandas import read_csv
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, RobustScaler
 
+scale_type = "STANDARD"
 
 def load_file(filepath):
     dataframe = read_csv(filepath, header=None, delim_whitespace=True)
@@ -75,9 +80,8 @@ def getNaCount(dataset):
     print("\n ----train[0] ", dataset[0])
     print("shape= ", dataset.shape[0])
 
-    scaler = StandardScaler()
-    x_train = scaler.fit_transform(dataset[0])
-    print("x_train: ", x_train)
+
+    #print("x_train: ", x_train)
 
     for i in range(0, dataset.shape[0]):
         print("i= ", i)
@@ -119,19 +123,104 @@ def kFoldValidation(trainX, trainY):
         partial_train_data = trainX[: (i + 1) * num_val_samples]
         #val_data = trainX[i * num_val_samples: (i + 1) * num_val_samples]
         print("partial_train_data.shape", partial_train_data.shape)
-        print("partial_train_data", partial_train_data)
+        #print("partial_train_data", partial_train_data)
 
         partial_train_targets = trainY[: (i + 1) * num_val_samples]
-        print("\n\npartial_train_targets.shape", partial_train_targets.shape)
+        print("partial_train_targets.shape", partial_train_targets.shape)
         #print("partial_train_targets", partial_train_targets)
 
         val_data = trainX[(i + 1) * num_val_samples:(i + 1) * num_val_samples + num_val_samples]
         print("\n\nval_data.shape", val_data.shape)
-        print("val_data", val_data)
-        val_targets = trainY[(i + 1) * num_val_samples:]
-        print("\n\nval_targets.shape", val_targets.shape)
+        #print("val_data", val_data)
+        val_targets = trainY[(i + 1) * num_val_samples:(i + 1) * num_val_samples + num_val_samples]
+        print("val_targets.shape", val_targets.shape)
         #print("val_targets", val_targets)
         print("\n#########\n\n")
+
+        #BUILD MODEL
+        model = buildModel(partial_train_data)
+        model.fit(partial_train_data, partial_train_targets,epochs=num_epochs,validation_data=(val_data, val_targets),  batch_size=64, verbose=1)
+        val_mse, val_mae = model.evaluate(val_data, val_targets, verbose=0)
+        all_scores.append(val_mae)
+
+    print("\n\n ------- all_scores", all_scores)
+    print("\n\n ------- np.mean(all_scores)", np.mean(all_scores))
+
+
+def scale(datasetX, datasetY, scale_type) :
+
+    if scale_type == "STANDARD":
+
+        scaler = StandardScaler()
+
+        #datasetX = scaler.fit_transform(datasetX)
+        scalers = {}
+        for i in range(datasetX.shape[1]):
+            scalers[i] = StandardScaler()
+            datasetX[:, i, :] = scalers[i].fit_transform(datasetX[:, i, :])
+        print("DIM TRAIN DOPO SCALER " ,datasetX.shape)
+
+        ''' 
+        datasetY = scaler.fit_transform(datasetY)
+        
+        datasetX = scaler.fit_transform(datasetX.reshape(-1, datasetX.shape[-1])).reshape(datasetX.shape)
+        datasetY = scaler.transform(datasetY.reshape(-1, datasetY.shape[-1])).reshape(datasetY.shape)
+
+        scalers = {}
+        for i in range(datasetX.shape[1]):
+            scalers[i] = StandardScaler()
+            datasetX[:, i, :] = scalers[i].fit_transform(datasetX[:, i, :])
+
+        '''
+
+    if scale_type == "MINMAX":
+        #ToDo cambiare range
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        datasetX = scaler.fit_transform(datasetX[0])
+
+    if scale_type == "MAX_ABS":
+        scaler = MaxAbsScaler()
+        datasetX = scaler.fit_transform(datasetX[0])
+
+    if scale_type == "ROBUST":
+        #ToDo cambiare range
+        scaler =RobustScaler(quantile_range=(25, 75), with_centering=False)
+        datasetX = scaler.fit_transform(datasetX[0])
+
+    return datasetX,   datasetY
+
+
+def buildModel(trainX):
+    model = models.Sequential()
+    #model.add(layers.LSTM(32))
+    model.add(layers.Dense(315, activation='relu', input_shape=(trainX.shape[1],), kernel_regularizer = tf.keras.regularizers.l2(1.e-4)))
+
+    '''
+    model.add(layers.Dense(64, activation='relu'))
+    model.add(layers.Dense(46, activation='relu'))  #PRIMA ERA 64
+    model.add(layers.Dense(9, activation='softmax'))
+    model.compile(optimizer='rmsprop',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    '''
+    model.add(tf.keras.layers.Dense(256, activation='relu'))
+
+    model.add(tf.keras.layers.Dense(128, activation='relu'))
+    model.add(tf.keras.layers.Dense(128, activation='relu'))
+    model.add(tf.keras.layers.BatchNormalization())
+    model.add(tf.keras.layers.Dense(64, activation='relu'))
+    model.add(tf.keras.layers.Dropout(.3))
+
+    model.add(tf.keras.layers.Dense(32, activation='relu'))
+    model.add(tf.keras.layers.Dense(32, activation='relu'))
+    model.add(tf.keras.layers.Dense(9, activation='softmax', kernel_regularizer=tf.keras.regularizers.l2(1.e-4)))
+
+    opt = tf.keras.optimizers.Adam(learning_rate=1.e-3)
+    model.compile(optimizer=opt, loss='categorical_crossentropy',metrics=['accuracy'])
+
+    #model.compile(optimizer='rmsprop', loss='categorical_crossentropy',metrics=['accuracy'])
+    return model
+
 
 def main():
     trainX, trainY = loadData()
@@ -143,9 +232,16 @@ def main():
     print("shape == ", trainY.shape)
     print(trainY)
     '''
+    print("PROVA SIMOOOO " , trainX[0].shape)
+
+    trainX, trainY = scale(trainX, trainY, scale_type)
+
+
 
     #split training / test --> 80/20
     trainX, testX = train_test_split(trainX, test_size=.2, shuffle=False)
+
+
 
     '''
     print("shape TRAIN == ", trainX.shape)
@@ -164,10 +260,21 @@ def main():
     print(testY)
     '''
 
+    ''' 
+    trainY = to_categorical(trainY, 3)
+    testY = to_categorical(testY, 3)
+    
+    '''
+    trainY = tf.keras.utils.to_categorical(trainY, num_classes=9)
+    testY = tf.keras.utils.to_categorical(testY, num_classes=9)
+
+    model = buildModel(trainX)
     kFoldValidation(trainX, trainY)
     #print(getNaCount(trainX))
 
-    # todo ora fare standard scaler
+
+
+    # todo ora fare ONE-HOT ENCODING
 
     '''
     1 split train test
