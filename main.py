@@ -10,6 +10,7 @@ from numpy import dstack
 
 # load a single file as a numpy array
 from pandas import read_csv
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 
@@ -134,12 +135,35 @@ def kFoldValidation(trainX, trainY):
 
 def main():
     trainX, trainY = loadData()
+    '''
 
     print("shape == ", trainX.shape)
     print(trainX)
     print(" \n=============================================\n")
     print("shape == ", trainY.shape)
     print(trainY)
+    '''
+
+    #split training / test --> 80/20
+    trainX, testX = train_test_split(trainX, test_size=.2, shuffle=False)
+
+    '''
+    print("shape TRAIN == ", trainX.shape)
+    print(trainX)
+    print("\n\nshape TEST== ", testX.shape)
+    print(testX)
+    '''
+
+    print(" \n=============================================\n")
+
+    trainY, testY = train_test_split(trainY, test_size=.2, shuffle=False)
+    ''' 
+    print("shape TRAIN == ", trainY.shape)
+    print(trainY)
+    print("\n\nshape TEST== ", testY.shape)
+    print(testY)
+    '''
+
     kFoldValidation(trainX, trainY)
     #print(getNaCount(trainX))
 
