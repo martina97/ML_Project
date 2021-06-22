@@ -6,7 +6,7 @@ import csv
 
 import pandas as pd
 import numpy as np
-from keras.layers import Embedding, LSTM, Dropout, Dense, Conv1D, MaxPooling1D, Flatten, Conv2D
+from keras.layers import Embedding, LSTM, Dropout, Dense, Conv1D, MaxPooling1D, Flatten, Conv2D, LeakyReLU
 from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
 from numpy import dstack
@@ -245,10 +245,12 @@ def buildModel2(datasetX, datasetY, testX, testY) :
     model = Sequential()
     model.add(Conv1D(filters=64, kernel_size=5, activation='relu', input_shape=(n_timesteps, n_features)))
 
-    model.add(MaxPooling1D(pool_size=4,  strides=3, padding='valid'))
-    model.add(Conv1D(filters=32, kernel_size=5, activation='relu'))
+    model.add(MaxPooling1D(pool_size=4,  strides=3, padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=5, activation='relu'))
     model.add(MaxPooling1D(pool_size=4))
-
+    model.add(Conv1D(filters=64, kernel_size=5, activation='relu'))
+    model.add(MaxPooling1D(pool_size=4))
+    #model.add(LeakyReLU())
 
     model.add(Flatten())
     model.add(Dense(400, activation='relu'))
@@ -258,12 +260,15 @@ def buildModel2(datasetX, datasetY, testX, testY) :
     #model.compile(optimizer='adam', loss='mse')
 
     model.summary()
+    opt = tf.keras.optimizers.Adam(learning_rate=1.e-3)
+    opt2 = tf.keras.optimizers.RMSprop(lr=1e-4)
 
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
-    # fit network
+    # fit network - training. ci stampa accuracy sui dati di training
     model.fit(datasetX, datasetY, epochs=epochs, batch_size=batch_size, verbose=verbose)
-    # evaluate model
+
+    # evaluate model. Ora controlliamo che il modello si comporti bene anche sul test set:
     _, accuracy = model.evaluate(testX, testY, batch_size=batch_size, verbose=1)
     print("accuracy ==== ", accuracy)
 
