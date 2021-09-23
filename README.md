@@ -11,10 +11,10 @@ Il training set comprende tre file in formato csv (train gesture x, train gestur
 ![Cattura](https://user-images.githubusercontent.com/54946553/134173314-cf99dc4d-ed9d-4248-87ce-30fc543cc6db.PNG)
 
 ## 3 Valutazione
-Il progetto può essere svolto individualmente o in gruppi composti da al massimo 2 componenti. Deve essere prodotta una breve relazione in cui si giustificano le scelte fatte. La metrica di valutazione del progetto è l'accuracy sul test set.
+La metrica di valutazione del progetto è l'accuracy sul test set.
 
 ## 4 Modalità di consegna
-Al fine di poter valutare nel migliore dei modi i progetti è importante che gli script siano chiari e parzialmente commentati. Oltre alla relazione, bisogna consegnare il codice sorgente con gli script per l'addestramento della rete neurale. Il codice deve inoltre contenere una routine di test che ha la funzione di leggere il test set (test gesture x, test gesture y, test gesture z), le etichette di test (test label.csv), il modello serializzato ed infine valutare in modo automatico l'accuracy sul test set.
+Il codice deve contenere una routine di test che ha la funzione di leggere il test set (test gesture x, test gesture y, test gesture z), le etichette di test (test label.csv), il modello serializzato ed infine valutare in modo automatico l'accuracy sul test set.
 
 ## 5 Riferimenti
 [1] https://arxiv.org/pdf/1809.04356.pdf
